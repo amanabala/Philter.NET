@@ -6,19 +6,26 @@ Licensed under the BSD 3-Clause License (see LICENSE).
 
 ---
 
-This product is a C# port of and derivative work of Philter-Lite,
-originally developed by the UCSF Department of Pediatrics:
+This product is a C# port of and derivative work of Philter, the rule-based
+PHI de-identification pipeline developed by the UCSF Bakar Computational
+Health Sciences Institute (BCHSI):
 
-    Philter-Lite
-    https://github.com/UCSF-Pediatrics/philter-lite
+    Philter (philter-ucsf)
+    https://github.com/BCHSI/philter-ucsf
     BSD 3-Clause License
-    Copyright (c) UCSF Department of Pediatrics
+    Copyright (c) 2018, Regents of the University of California
+    Citation: Norgeot, B., Muenzen, K., Peterson, T.A. et al. "Protected Health
+    Information filter (Philter): accurately and securely de-identifying
+    free-text clinical notes." npj Digital Medicine 3, 57 (2020).
 
-The base filter pipeline configuration (`philter_delta.json`) and the
-lookup sets in `Configuration/sets/` are derived from the upstream
-Philter-Lite distribution. Upstream BSD-3 attribution applies to those
-artifacts; modifications and additions ship under this project's BSD-3
-license alongside.
+The C# port was made via philter-lite (https://github.com/TimOrme/philter-lite),
+a production-oriented fork of philter-ucsf against which Philter.NET is
+cross-benchmarked for fidelity. The base filter pipeline configuration
+(`philter_delta.json`) and the lookup sets in `Configuration/sets/` are the
+philter-ucsf artifacts verbatim (the 313 filters and the
+firstnames/lastnames/nonames gazetteers). The upstream BSD-3 attribution and
+the Regents of the University of California copyright apply to those artifacts;
+modifications and additions ship under this project's BSD-3 license alongside.
 
 The C# filter engine implementation, configuration loader, sidecar
 mechanism, and POS tagger integrations are original work.

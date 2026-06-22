@@ -1,7 +1,8 @@
 # Philter.NET
 
-A C# port of [Philter-Lite](https://github.com/UCSF-Pediatrics/philter-lite),
-a rule-based PHI de-identification engine for clinical free text. Targets
+A C# port of [Philter](https://github.com/BCHSI/philter-ucsf) (UCSF Bakar
+Computational Health Sciences Institute; Norgeot et al., *npj Digital Medicine*
+2020), a rule-based PHI de-identification engine for clinical free text. Targets
 HIPAA Safe Harbor-style redaction in .NET applications that need to scrub
 clinical notes before sending them to third-party LLM APIs (or anywhere else
 PHI shouldn't go).
@@ -169,11 +170,17 @@ factor it in.
 
 ## License
 
-[BSD 3-Clause](LICENSE) — same as upstream Philter-Lite. See
+[BSD 3-Clause](LICENSE) — same as upstream Philter. See
 [NOTICE](NOTICE) for upstream attribution.
 
 ## Acknowledgments
 
 This is a C# port. The hard work of designing the filter pipeline, the
-phi-type taxonomy, and the lookup sets was done by the UCSF Pediatrics
-team. Bugs in this port are mine; the core idea is theirs.
+phi-type taxonomy, and the lookup sets was done by the **UCSF Bakar
+Computational Health Sciences Institute (BCHSI)** — see Norgeot et al.,
+"Protected Health Information filter (Philter)…", *npj Digital Medicine* 3, 57
+(2020). The port was made via [philter-lite](https://github.com/TimOrme/philter-lite),
+a production-oriented fork of philter-ucsf, against which this project is
+cross-benchmarked for fidelity; the embedded `philter_delta.json` and lookup
+sets are the philter-ucsf artifacts verbatim. Bugs in this port are mine; the
+core idea is theirs.

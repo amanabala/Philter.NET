@@ -80,13 +80,15 @@ internal sealed class CoordinateMap
         }
 
         // Multiple overlaps — span union from earliest start to latest stop.
-        // NOTE: keep the EARLIEST start as the key and the LATEST stop as the value.
-        // (A prior transcription bug had these crossed — `_map[last.newStart] =
-        // first.newStop` — which truncated the union to the first overlap's stop and
-        // silently dropped coverage of every later overlapped span. That manifested as a
-        // recall leak: a PHI span abutting another PHI exclude that got merged by a third
-        // adjacent AddExtend could lose its exclusion entirely, e.g. a visit date
-        // immediately after a hyphenated provider name.)
+        // DELIBERATE DEVIATION FROM UPSTREAM: philter-ucsf and philter-lite both do
+        // `add(o2.new_start, o1.new_stop)` here — the LAST overlap's start with the FIRST
+        // overlap's stop — which truncates the union and silently drops coverage of every
+        // later overlapped span. In the original that is a latent recall leak: a PHI span
+        // abutting another PHI exclude that gets merged by a third adjacent AddExtend can
+        // lose its exclusion entirely (e.g. a visit date right after a hyphenated provider
+        // name). We take the true union (earliest start -> latest stop), which raises recall
+        // with no measured regression (gold DATE 755/758 -> 758/758, overall held). This is
+        // the one intentional behavioral departure from upstream Philter.
         var first = overlaps[0];
         var last = overlaps[^1];
         _map[first.newStart] = last.newStop;

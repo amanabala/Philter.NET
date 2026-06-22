@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once
 
 ## [Unreleased]
 
+## [0.1.2-preview] — 2026-06-22
+
+### Changed
+
+- **Attribution corrected.** Earlier previews credited "UCSF Pediatrics" and
+  linked a `UCSF-Pediatrics/philter-lite` repository. The actual origin is
+  **Philter**, developed by the **UCSF Bakar Computational Health Sciences
+  Institute (BCHSI)** — [`BCHSI/philter-ucsf`](https://github.com/BCHSI/philter-ucsf),
+  Norgeot et al., *npj Digital Medicine* 3, 57 (2020), Copyright (c) 2018 Regents
+  of the University of California. The C# port was made via
+  [philter-lite](https://github.com/TimOrme/philter-lite), a production fork of
+  philter-ucsf. The embedded `philter_delta.json` (313 filters) and the
+  firstnames/lastnames/nonames gazetteers are the philter-ucsf artifacts
+  verbatim, so this is a faithful port of philter-ucsf. README and NOTICE updated;
+  the NOTICE upstream copyright is now correctly attributed to the Regents of the
+  University of California (previously misstated as "UCSF Department of
+  Pediatrics"). No engine or behavior change.
+
+### Notes
+
+- Clarifies the 0.1.1 `CoordinateMap.AddExtend` change: the span-union truncation
+  it fixes is present identically in upstream philter-ucsf **and** philter-lite,
+  so the 0.1.1 change is an **intentional deviation from upstream** to close a
+  latent recall leak — not the correction of a porting error.
+
 ## [0.1.1-preview] — 2026-06-22
 
 ### Fixed
@@ -27,8 +52,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once
 ## [0.1.0-preview] — 2026-06-22
 
 First public preview of Philter.NET — a C# port of
-[philter-lite](https://github.com/UCSF-Pediatrics/philter-lite) (UCSF Pediatrics,
-BSD-3) for HIPAA Safe Harbor-style PHI de-identification of clinical free text.
+[Philter](https://github.com/BCHSI/philter-ucsf) (UCSF BCHSI; Norgeot et al.,
+*npj Digital Medicine* 2020; BSD-3) for HIPAA Safe Harbor-style PHI
+de-identification of clinical free text. (Attribution in this entry was
+corrected in 0.1.2-preview — earlier text mis-credited "UCSF Pediatrics".)
 Pre-publication: the API shape is real but may change before 1.0.0.
 
 > **On the data:** all benchmarks here are on **synthetic** notes, not real
@@ -92,6 +119,7 @@ Catalyst model incurred. Production deployments should still pre-warm the single
 - Developed by a single maintainer with substantial AI assistance — see the
   README "How this project is developed" section.
 
-[Unreleased]: https://github.com/amanabala/Philter.NET/compare/v0.1.1-preview...HEAD
+[Unreleased]: https://github.com/amanabala/Philter.NET/compare/v0.1.2-preview...HEAD
+[0.1.2-preview]: https://github.com/amanabala/Philter.NET/compare/v0.1.1-preview...v0.1.2-preview
 [0.1.1-preview]: https://github.com/amanabala/Philter.NET/compare/v0.1.0-preview...v0.1.1-preview
 [0.1.0-preview]: https://github.com/amanabala/Philter.NET/releases/tag/v0.1.0-preview
