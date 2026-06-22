@@ -1,0 +1,475 @@
+{
+ "_comment": "Philter.NET.Clinical — clinical-text safe patterns that prepend to the upstream philter_delta pipeline. NOT part of upstream Philter-UCSF. BSD-3 attribution applies to base philter_delta only; this sidecar is original work by the Philter.NET maintainer(s), shared under the same BSD-3 license.",
+ "_origin": "Originally developed inside a private healthcare-coding product (SmartCodingAI) against synthetic clinical encounter notes, where versions v1.0 through v1.6 were authored. Moved 2026-06-17 to Philter.NET.Clinical for public release alongside Philter.NET 0.1.0-preview.",
+ "version": "1.10.7",
+ "_v1_10_7_note": "v1.10.7 (2026-06-19): two over-redaction fixes surfaced by SmartCoding's sample-note-001 (a real-encounter-shaped neuro note), both the same shape — a base DATE filter grabbing a clinical number pattern the sidecar didn't claim first. (1) 'BP elevated at 152/88' → base 'mm_yy' tagged 152/88 a date (no range-check); added 'blood pressure context safe' (N/N within ~30 chars of a BP anchor). (2) 'ambulation beyond 2-3 blocks' → base 'mm_dd' tagged 2-3 a date; added 'numeric range with clinical unit safe'. NOT perceptron-related (DATE filters are tagger-independent regex) — confirmed via per-span filter attribution. BOTH carry date-fragment lookarounds (the v1.10.3/5/6 anti-shadow technique) so they can't whitelist a real date slice; GATED on the 200-note recall harness (DATE recall held 755/758, overall 97.9% unchanged) + regression rows. (3) Also added 'named clinical instrument safe' for 'Montreal Cognitive Assessment' — the POS tagger tags 'Montreal' a proper noun and a base NAME filter redacts it; anchored to the full instrument phrase so a bare city/surname 'Montreal' is never whitelisted (recall-safe by construction — can't overlap any gold PHI). Over-redaction equilibrium baseline stays v1.10.4; this is a targeted real-note patch, not a corpus sweep.",
+ "_v1_10_6_note": "v1.10.6 (2026-06-18): RECALL FIX from the scaled (200-note) gold-harness triage — the second sidecar-induced date leak of the same META-CLASS as v1.10.5: a 'keyword + number' safe pattern absorbing a date component. Here 'Last HbA1c 09-25-22: 9.8%' let the A1c value matcher take '09' (date month), shadowing the date exclude. Fixed with an atomic value group + date-continuation lookahead. (Watch this class: any sidecar pattern matching KEYWORD followed by a bare number can swallow a following date — audited the current set; a1c was the remaining offender.) Triage also surfaced TWO non-sidecar findings left for a decision: (1) the NAME recall hole — 54/1285 leaks, ~100% common-word surnames (Read/Young/Fields/Wood/Cross/...), a base 'nonames' gazetteer collision, NOT a sidecar bug; (2) 3 base date-filter gaps where a date immediately follows a hyphenated provider name. Both are base-config, not over-redaction; equilibrium for the sidecar's over-redaction axis still stands at v1.10.4.",
+ "_v1_10_5_note": "v1.10.5 (2026-06-18): RECALL FIX — the first leak caught by the new gold recall harness (tools/PhilterRecallEval + GoldNoteGenerator). On a generated note, a visit date ending a sentence ('...flight 2021-07-09.\\n\\nThe patient...') leaked: the '-' separator put a word boundary before the 2-digit tail '09', so the 'numbered list marker safe' pattern matched '09.\\n\\nThe' and (sidecar prepends) shadowed the base date exclude. Anchored the marker with a lookbehind rejecting a preceding date-separator/digit. NOT an over-redaction iteration (equilibrium for that stands at v1.10.4) — recall/safety fixes continue on their own axis as the harness surfaces them.",
+ "_v1_10_4_note": "v1.10.4 (2026-06-18): FINAL equilibrium iteration. After the core tokenization + numeric/CD fixes, the corpus default-deny tail fell to 6,965 suspects and the baseline→sidecar reduction to 1.17× — the sidecar's systemic value is exhausted. This batch extends 'residual vocabulary safe' with ~21 unambiguous English/medical words (impacting, necessitating, emphasizing, correlating, corroborates, disrupting, misplacing, paralyzed, cosmetically, clarity, multisequence, antifibrotic, honeycombing, decibels, millivolts, amplitudes, scotomas, abductors, plantarflexors, blackouts, buttoning) — pure precision wins with no name/place-collision risk. EQUILIBRIUM DECLARED: the remaining tail is deferred-by-design (race values asian/indian, eponyms raynaud/alzheimer/pugh → consumer restore), recall-risky (single letters l/m/v), or overfit-prone specialty/name-colliding vocab (oak/grass/amber/carpenter/weed). Further over-redaction reduction requires a RECALL HARNESS, not more whitelist entries (error asymmetry: over-redaction is a safe utility cost, under-redaction is a breach, and we have no recall net). SmartCoding adoption can proceed from here.",
+ "_v1_10_3_note": "v1.10.3 (2026-06-18): RECALL FIX surfaced by the hard-recall probe while gating the core numeric/CD MapPos fix. The v1.9 'assessment score safe' pattern matched the date slice '01/15' in '01/15/2024' (denom 15 is a valid scale value); because the sidecar prepends, that whitelist blocked the base date exclude and the DOB leaked. Added date-fragment lookarounds (reject digit/'.'/'-'/'/' on either side adjacent to another digit) so the pattern only matches standalone scores. Pre-existing since v1.9; the CD fix widened the blast radius (the year 2024 also began to survive), so it is fixed here as a paired gate. No new families added.",
+ "_v1_10_2_note": "v1.10.2 (2026-06-18): SIDECAR RETIREMENT enabled by the core tokenization-fidelity fix (FilterEngine.MapSet now splits tokens on non-alnum like upstream _map_set, so compound/word families whitelist via the 195k nonames set). Retired 17 now-redundant word/hyphen-compound filters (clinical-element-nouns, diet-modifiers, clinical-adjectives, anatomy nouns, exam findings, psych MSE, anatomic adjectives [the DM/renal class!], demographic labels, bare temporal nouns, common-clinical-nouns, cognitive vocab, general clinical vocab, workflow words, spelled-out numbers, and the 3 hyphenated-compound patterns). KEPT: all structural number/unit/code/score patterns, abbreviations (AFib/HTN/HIV/r/o), drug names/suffixes/classes (coding-critical, conservative), roman numerals; TRIMMED orthopedic to its eponyms; added a small residual-vocab filter (pencil/pentagons/intersecting/pearly/pollen/etc not in nonames). Gated by full tests + corpus over-redaction comparison.",
+ "_threshold_operator_note": "v1.3: comparison-operator support remains folded into KEYWORD-prefixed vital/lab patterns (HR, BP-with-prefix, BNP, Cr, etc.) where the prefix is mandatory, but is REVERTED on mass dose / BP-with-unit / lab concentration where the optional leading prefix broke NonBacktracking matching of bare-prefix values like 'furosemide 40mg' (observed in prod 2026-06-16). Comparison ops on bare values (e.g. '<10mg', '<140/90 mmHg') still survive because the operator passes through as punctuation and \\b matches between operator and digit. v1.2 added these prefixes thinking they were no-ops; they were not.",
+ "_v14_note": "v1.4 (2026-06-16): added medical abbreviations / drug names / drug suffixes / common English adjective patterns to work around the gap where Philter's POS-gated nonames whitelist doesn't fire on tokens that some earlier PHI filter has claimed first, AND where Catalyst tokenizes hyphenated compounds ('Well-appearing', 'medication-supplement', 'Soft-bristle') as single tokens whose alpha-only cleaned form ('wellappearing') is not in nonames. These new safe filters PREPEND to the upstream pipeline so they claim the span before any PHI filter can.",
+ "_v16_note": "v1.6 (2026-06-17): closes prod-observed over-redactions on a real refill encounter — (a) BP range 'Home BP readings 128-134/78-82' tokenized because the BP-with-prefix regex requires BP adjacent to the digits (the word 'readings' between breaks the match) and the N-N/N-N range shape was unprotected; (b) bare digit '2.' in numbered assessment list got grabbed by some Philter partial-date/SSN filter; (c) 'microalbumin' and 'Cr' in 'microalbumin/Cr ratio' tokenized — clinical noun whitelist had 'albumin' but not 'microalbumin', and 'Cr' was only safe when followed by a digit. Also adds pain-scale N/{10,5,4} (the 'rated 6/10' case observed in /Dev/PhiTest on 2026-06-17).",
+ "_versioning_note": "From v1.10.1, the sidecar uses 3-part versioning: patch increments each tuning iteration; after 10 iterations (v1.10.10) the minor bumps to v1.11.1. Iterations are driven by the per-note over-redaction catalog (analyzer's first-class per-note view, added 2026-06-18) and run until equilibrium — when only deferred-by-design families remain (true bare digits, years, surname-colliding race values, eponyms/codes → SmartCoding restore step). SmartCoding adoption is ON HOLD until equilibrium.",
+ "_v1_10_1_note": "v1.10.1 (2026-06-18): first iteration of the per-note-catalog loop. From the full 2,989-note catalog (26,854 default-deny over-redactions), closed the safely-fixable families: lab unit compounds (kg/m^2 BMI, mIU/L, K/uL, mcg/dL, /hpf), clinical slash-abbreviations (r/o, c/o, s/p, h/o, ...), general clinical/exam vocabulary (bowel/heart/fluid/imaging/sensory/motor/gait/reflexes/...), ordinal percentiles (50th), diagnosis abbreviations (HIV/AIDS/HCV/HBV/HSV/HPV/COVID/TB/STI/STD/RSV), and anchored cancer/CKD staging (stage 3b, grade II). DEFERRED: true bare digits + years (2024) (PHI/date policy); race/ethnicity VALUES (asian/indian allowed under Safe Harbor but white/brown collide with surnames) and eponyms/scores (raynaud/alzheimer/Child-Pugh) + CPT/ICD codes -> SmartCoding consumer-side restore step.",
+ "_v19_note": "v1.9 (2026-06-18): driven by a single real synthetic note (a neurocognitive exam) that concentrated low-frequency over-redactions the corpus-wide frequency ranking had buried (same blind spot as DM/renal). Closes: assessment-score ratios (generalized the pain-scale pattern to MoCA/MMSE '14/30', sub-scores '2/3'/'4/6'/'1/3', GCS '/15', pulse/reflex grades '1+/4+' — denominator restricted to real scale values to avoid partial-date collisions), cranial-nerve/grade roman numerals (II..XII only, single I/V/X excluded), neurocognitive/MSE vocabulary (visuospatial/executive, judgment/insight, orientation, recall, MoCA items pentagons/intersecting), relationship/common words stranded in slash-compounds (patient/daughter, pain/headache) + 'pencil', cerebellar coordination tests (finger-to-nose, heel-to-shin), and decade/count suffixes ('80s', 'serial 7s'). DEFERRED to the consumer (SmartCoding restore-step, decided 2026-06-18): CPT/ICD CODES (e.g. CPT 96116) — a bare 5-digit whitelist would collide with ZIP codes (PHI), so code restoration is done consumer-side against the real CPT/ICD code set; plus neuro test EPONYMS (Romberg, Montreal/MoCA) alongside the existing eponym restore.",
+ "_v18_note": "v1.8 (2026-06-18): driven by a full analyzer pass over the 2,989-note SyntheticNotes corpus (25 specialties, MARKDOWN-STRIPPED first — raw markdown '**' was ~63% of redactions and degraded POS tagging). Closes large over-redaction families surfaced across specialties: spelled-out numbers (one..thousand, incl. split halves of 'forty-five'/'two-month'), clinical units (mg/dL->dL, mIU, mL, micrometers, breaths/min, gauge, /hpf, eGFR '1.73 m^2'), anatomy nouns (face/nose/finger/neck/abdomen/...), exam findings (crackles/murmurs/rubs/gallops/guarding/rebound/breaths/signs/symptoms), psych MSE (suicidal/homicidal/mood/affect/hallucinations), hyphenated clinical suffix compounds (goal-directed/evidence-based/rate-controlled/age-appropriate/T-score/T2-weighted/cholesterol-lowering/long-acting), over-the-counter/OTC, the DM/renal class (anatomic adjectives + drug classes NSAIDs/SSRIs/ACEi/ARBs/PPIs/DOACs/statins — and verified 'renal' whitelisting transitively de-redacts 'DM' since the base 'Find Initials' regex_context filter only fires next to PHI), demographic/admin labels (RACE/ETHNICITY/AGE/SEX/DATE/TIME words), bare duration nouns, and common clinical nouns (lead/rate/score/disc/gauge/cells/trauma/lipid/tobacco/drinks/diet/risks/benefits). Also fixed pack-year to allow '35-pack-year', and extended the drug-name list. DEFERRED on PHI-safety (no recall harness yet): bare digits like '0' (possible PHI fragments) and disease EPONYMS (Raynaud/Alzheimer/Bell/Graves/Turner/Down — many are also common surnames; whitelisting risks recall holes). Tradeoff note: these are exclude=false (whitelist) patterns over non-identifier clinical vocabulary; the real mitigation against over-whitelisting is a recall harness (still the open gap).",
+ "_v17_note": "v1.7 (2026-06-18): first iteration driven by the corpus analyzer over a private synthetic-notes corpus (133 notes). PART A (temporal compounds): closes digit-hyphen temporal compounds — 'N-year-old', 'N-month follow-up', 'N-week monitor', 'N-year risk', 'N pack-year' — the dominant remaining over-redaction (year 27x, month 14x, week 10x as default-deny; ALL hyphen/rate compounds, no bare-prose cases). Added 'year/years/yr/yrs' to the rate-suffix list (was missing, so '3-4/year' stranded 'year'), an age/duration compound pattern, and a pack-year pattern. Validated bare 'year'/'week' in clean prose already survive via Philter's POS nonames whitelist, so no blanket word whitelist was added. PART B (high-confidence batch): ICD-10 codes (D22.9/L30.9 split on the dot — critical for a coding product), spine/disc levels (L4-L5, L5-S1), frequency multipliers (2x/3x), length measurements (4mm/cm), bare percentages (0.025%/5.2%), orthopedic exam terms (varus/valgus, crepitus, McMurray, ...), psych ideation/hallucination abbreviations (SI/HI/AH/VH/AVH added to the abbreviation set), and 'mid' added to the hyphenated-compound prefix list (mid-lung, mid-shin). Deferred judgment calls: screening-score values (PHQ-2 score 0), OTC brand names (CeraVe/Cetaphil), stray compound words (bone-on-bone).",
+ "filters": [
+  {
+   "title": "smartcoding rate suffix safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)/\\s*(day|hr|hour|hrs|hours|min|mins|minute|minutes|wk|wks|week|weeks|mo|month|months|yr|yrs|year|years|d|h)\\b"
+  },
+  {
+   "title": "smartcoding age duration compound safe",
+   "_v17_purpose": "Digit-hyphen temporal compounds: '8-year-old', '29-year-old', '3-month follow-up', '2-week monitor', '10-year risk'. Catalyst tokenizes the hyphenated compound as one token whose cleaned form ('8yearold') isn't in the nonames whitelist, so the unit word ('year'/'month'/'week') gets default-denied (year 27x, month 14x, week 10x in the 2026-06-18 corpus). Optional trailing '-old' covers ages. Ages <=89 are not PHI; >89 are already aggregated to '90+' upstream before this filter runs (the leading '+' stops this pattern from re-matching them). Also covers bare numeric durations like '1 year', '20 years', '3 months'.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d{1,3}\\s*-?\\s*(year|years|yr|yrs|month|months|mo|mos|week|weeks|wk|wks|day|days)(\\s*-?\\s*old)?\\b"
+  },
+  {
+   "title": "smartcoding pack-year history safe",
+   "_v17_purpose": "Smoking history unit '15 pack-year', '20 pack-years', '35-pack-year' — 'pack' isn't a safe word and 'year' strands. v1.8: allow a hyphen after the digits ('35-pack-year').",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+[-\\s]?pack[-\\s]?years?\\b"
+  },
+  {
+   "title": "smartcoding icd10 code safe",
+   "_v17_purpose": "ICD-10-CM diagnosis codes — 'D22.9' (melanocytic nevi), 'L30.9' (dermatitis), 'E11.9', 'Z00.129', 'M54.5'. Catalyst splits the code on the dot, stranding the letter+digits ('d22') and the decimal tail ('9') as default-deny. Redacting diagnosis codes is the worst over-redaction for a medical-coding product. Letter (A-T,V-Z) + 2 digits + optional decimal tail of 1-4 alphanumerics. MRNs (6+ bare digits) and SSNs have different shapes and are unaffected.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b[A-TV-Z]\\d{2}(?:\\.[A-Z0-9]{1,4})?\\b"
+  },
+  {
+   "title": "smartcoding spine level safe",
+   "_v17_purpose": "Vertebral / disc levels — 'L5', 'L4-L5', 'L5-S1', 'C6', 'T12-L1'. Spine letter (C/T/L/S) + 1-2 digits, optionally hyphenated to the next level.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b[CTLS]\\d{1,2}(?:[-\\u2013][CTLS]?\\d{1,2})?\\b"
+  },
+  {
+   "title": "smartcoding frequency multiplier safe",
+   "_v17_purpose": "Activity/dose frequency multipliers — '2x/week', 'walking 2x', '3x daily', 'x2'. The 'Nx' / 'xN' token strands as default-deny (the '/week' suffix is separately covered by the rate-suffix filter).",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(?:\\d{1,2}x|x\\d{1,2})\\b"
+  },
+  {
+   "title": "smartcoding length measurement safe",
+   "_v17_purpose": "Lesion / anatomic measurements in mm/cm — '4mm', '1.5 cm', '2 x 3 mm'. The mass-dose filter covers mg/mcg/g/mL etc. but not length units.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*(mm|cm)\\b"
+  },
+  {
+   "title": "smartcoding bare percentage safe",
+   "_v17_purpose": "Any standalone percentage — '0.025%' (tretinoin), '5.2%' (risk), '7.0%' (A1c trend without adjacent keyword). Percentages are never PHI. The dot-split was stranding fragments like '025'.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "\\b\\d+\\.?\\d*\\s*%"
+  },
+  {
+   "title": "smartcoding orthopedic terms safe",
+   "_v17_purpose": "Orthopedic exam vocabulary stranded as default-deny — 'varus/valgus', 'crepitus', 'antalgic', 'McMurray', 'Lachman', 'effusion', 'laxity'. Clinical, never PHI.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(McMurray|Lachman|Hawkins|Neer|Spurling|Phalen|Tinel|subluxation|crepitus)\\b",
+   "_v1_10_2_purpose": "trimmed — varus/valgus/effusion/laxity now whitelisted via nonames after the tokenization fix; kept eponym/exam terms not in nonames."
+  },
+  {
+   "title": "smartcoding medical abbreviation safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(AFib|AF|HTN|HLD|HF|CHF|CHD|CAD|ACS|MI|NSTEMI|STEMI|PCI|CABG|DOAC|NOAC|LMWH|UFH|INR|ECG|EKG|ECHO|TTE|TEE|JVP|EF|LVEF|AICD|ICD|PPM|VT|SVT|PVC|PAC|LBBB|RBBB|LV|RV|LA|RA|AV|PDA|ASD|VSD|MR|AR|TR|AS|MS|COPD|asthma|OSA|CPAP|BiPAP|PE|DVT|ARDS|URI|UTI|BPH|CTA|CXR|PFT|ABG|FEV1|FVC|DLCO|PEEP|FiO2|SpO2|SaO2|PaO2|PCO2|GERD|PUD|IBS|IBD|UC|CD|GI|GU|NPO|BRBPR|CKD|ESRD|AKI|GFR|eGFR|BUN|Cr|DM|T1DM|T2DM|DM2|HbA1c|A1C|TSH|fT4|fT3|ACTH|CVA|TIA|TBI|CNS|PNS|ALS|MMSE|GCS|ROM|DTR|RRR|ADHD|ADD|OCD|MDD|GAD|PTSD|BPD|SAD|SUD|AUD|SI|HI|AH|VH|AVH|CBC|WBC|RBC|Hgb|Hct|Plt|MCV|MCHC|RDW|PT|PTT|aPTT|BMP|CMP|LFT|AST|ALT|ALP|GGT|BNP|NTproBNP|hsCRP|CRP|ESR|CK|LDH|HDL|LDL|VLDL|HEENT|ENT|TM|EOM|PERRL|PERRLA|HPI|PMH|FH|SH|PSH|ROS|PMHx|FHx|SHx|NKA|NKDA|NAD|WDWN|PRN|BID|TID|QID|qd|q4h|q6h|q8h|q12h|qhs|qam|qpm|po|PO|IV|IM|SC|SQ|PR|SL|DME|CMN|LCD|NCD|RA|OA|JRA)\\b"
+  },
+  {
+   "title": "smartcoding drug suffix safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b[a-z]{3,}(pril|olol|mide|lactone|done|azole|azepam|statin|sartan|dipine|aban|tinib|mab|gliflozin|gliptin|prazole|olone|olin)\\b"
+  },
+  {
+   "title": "smartcoding drug name safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(warfarin|heparin|aspirin|clopidogrel|ticagrelor|prasugrel|metformin|insulin|glargine|lispro|aspart|detemir|digoxin|amiodarone|dronedarone|levothyroxine|prednisone|dexamethasone|methylprednisolone|albuterol|ipratropium|tiotropium|salmeterol|formoterol|fluticasone|budesonide|montelukast|zafirlukast|sertraline|fluoxetine|paroxetine|escitalopram|citalopram|duloxetine|venlafaxine|aripiprazole|olanzapine|risperidone|quetiapine|lithium|valproate|valproic|lamotrigine|topiramate|carbamazepine|oxcarbazepine|methotrexate|tacrolimus|cyclosporine|vancomycin|ciprofloxacin|levofloxacin|azithromycin|doxycycline|amoxicillin|cephalexin|ceftriaxone|nitrofurantoin|diphenhydramine|cetirizine|loratadine|fexofenadine|gabapentin|pregabalin|tramadol|morphine|fentanyl|hydromorphone|acetaminophen|ibuprofen|naproxen|famotidine|ranitidine|cimetidine|baclofen|cyclobenzaprine|metolazone|hydrochlorothiazide|chlorthalidone|allopurinol|colchicine|methylphenidate|levetiracetam|donepezil|memantine|tamsulosin|finasteride|sildenafil|tadalafil|naloxone|naltrexone|buprenorphine|methadone|suboxone|empagliflozin|dapagliflozin|canagliflozin|semaglutide|dulaglutide|liraglutide|sitagliptin|linagliptin|rivaroxaban|apixaban|dabigatran|edoxaban|sacubitril|valsartan|losartan|olmesartan|telmisartan|candesartan|irbesartan|amlodipine|diltiazem|verapamil|nifedipine|spironolactone|eplerenone|furosemide|torsemide|bumetanide|pantoprazole|omeprazole|esomeprazole|lansoprazole|rabeprazole|escitalopram|bupropion|mirtazapine|trazodone|buspirone|hydroxyzine|clonazepam|lorazepam|alprazolam|diazepam|zolpidem)\\b"
+  },
+  {
+   "title": "smartcoding supplement names safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(CoQ10|CoQ\\d+|Q10|Omega-3|omega-3|vitamin\\s+[A-K]\\d*|fish\\s+oil|fish-oil|turmeric|melatonin|magnesium|glucosamine|chondroitin|probiotic|prebiotic|coenzyme|biotin|folate|folic\\s+acid|niacin|thiamine|riboflavin|pyridoxine|cobalamin|ascorbic\\s+acid|cholecalciferol|ergocalciferol|alpha-lipoic|ginkgo|ginseng|garlic|echinacea|valerian|kava|St\\.?\\s*John'?s?\\s+wort|saw\\s+palmetto|milk\\s+thistle)\\b"
+  },
+  {
+   "title": "smartcoding comparator percentage safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "[<>≤≥]\\s*\\d{1,3}\\s*%"
+  },
+  {
+   "title": "smartcoding threshold verb percentage safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(remains?|drops?|falls?|stays?|maintains?|reaches?|hits?|under|over|below|above)\\s+\\d{1,3}\\s*%"
+  },
+  {
+   "title": "smartcoding ef percentage safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(LV)?EF\\b\\s*(of\\s+|is\\s+)?(?:[<>]=?|[:=≤≥])?\\s*\\d{1,3}\\s*%?"
+  },
+  {
+   "title": "smartcoding ejection fraction safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\bejection\\s+fraction\\s+(of\\s+|is\\s+)?(?:[<>]=?|[:=≤≥])?\\s*\\d{1,3}\\s*%?"
+  },
+  {
+   "title": "smartcoding blood pressure range safe",
+   "_v16_purpose": "Protects 'Home BP readings 128-134/78-82' shape — two ranges with a slash between them. The BP-with-prefix pattern needs BP adjacent to digits; 'readings' between breaks it.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "\\b\\d{2,3}-\\d{2,3}/\\d{2,3}-\\d{2,3}\\b"
+  },
+  {
+   "title": "smartcoding assessment score safe",
+   "_v16_purpose": "Protects pain-scale shapes like '6/10', '3/5', '2/4'. Common clinical pattern; matched by Philter's date/SSN partial filter when standalone.",
+   "_v19_purpose": "Generalized to assessment-scale scores and pulse/reflex grades — MoCA/MMSE '14/30', sub-scores '2/3' '4/6' '1/3', GCS '/15', pulse '1+/4+'. Denominator restricted to real clinical scale denominators so it won't whitelist arbitrary N/N (partial-date) shapes.",
+   "_v1_10_3_purpose": "RECALL FIX: added date-fragment lookarounds so the score shape never matches a slice of a date like '01/15' inside '01/15/2024' (denom 15 is a real scale value, so the un-guarded pattern whitelisted '01/15', which — since the sidecar prepends — blocked the base date exclude and leaked the DOB). Lookbehind rejects a preceding digit/'.'/'-'/'/' (trailing-date case '2024/01/15'); lookahead rejects a following '.'/'-'/'/'+digit (leading-date case '01/15/2024'). Genuine scores ('14/30', '6/10', '1+/4+') are unaffected. Lookarounds force a Compiled fallback (NonBacktracking unsupported) — acceptable for one low-frequency filter.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?<![\\d./-])\\b\\d{1,2}\\+?\\s*/\\s*(?:2|3|4|5|6|8|10|12|15|20|28|30)\\+?\\b(?![./-]\\d)"
+  },
+  {
+   "title": "smartcoding numbered list marker safe",
+   "_v16_purpose": "Protects '1.', '2.', '3.' at the start of numbered list items in clinical assessment / plan sections. Bare digits followed by a period+space+Capital letter are not PHI — but some Philter partial-date/SSN matcher grabs them anyway.",
+   "_v1_10_5_purpose": "RECALL FIX (caught by the new gold recall harness): a date ending a sentence like '2021-07-09.' put a word boundary before the 2-digit tail '09', so '09.\\n\\nThe' matched the list-marker shape and — since the sidecar prepends — shadowed the base date exclude, leaking the DOB/visit date. Added a lookbehind so the marker digit is NOT preceded by a date separator or digit ([\\d./-]); real list markers (preceded by newline/space/colon) still match. Lookbehind forces a Compiled fallback (NonBacktracking unsupported) — fine for one low-frequency filter.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?<![\\d./-])\\b\\d{1,2}\\.\\s+[A-Z]"
+  },
+  {
+   "title": "smartcoding blood pressure with unit safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "\\b\\d{2,3}/\\d{2,3}\\s*mmHg\\b"
+  },
+  {
+   "title": "smartcoding blood pressure with prefix safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(BP|SBP|DBP|MAP|blood\\s+pressure)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d{2,3}(?:/\\d{2,3})?\\b"
+  },
+  {
+   "title": "smartcoding blood pressure context safe",
+   "_v1_10_7_purpose": "v1.10.7 (2026-06-19): 'BP elevated at 152/88' — when BP context is separated from the value by words ('elevated at'), the adjacent-prefix and mmHg-unit patterns don't fire, so the base 'mm_yy' DATE filter grabs 152/88 (it does NOT range-check, so an impossible 'month 152' passes). Claims a N/N value within ~30 chars after a BP anchor. Date-fragment lookarounds (same technique as the assessment-score fix) prevent shadowing a real date like 'BP checked 01/15/2024'. Variable-length lookbehind -> Compiled fallback. Surfaced by SmartCoding's sample-note-001.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)(?<=\\b(?:BP|SBP|DBP|MAP|blood\\s+pressure)\\b.{0,30})(?<![\\d./-])\\d{2,3}/\\d{2,3}(?![./-]\\d)"
+  },
+  {
+   "title": "smartcoding numeric range with clinical unit safe",
+   "_v1_10_7_purpose": "v1.10.7 (2026-06-19): 'ambulation beyond 2-3 blocks' — the base 'mm_dd' DATE filter reads '2-3' as a month-day date. A small N-N range immediately followed by a clinical unit (blocks/minutes/days/weeks/months/years/times/steps/tablets/...) is a count range, not a date. Date-fragment lookarounds prevent shadowing a real date (e.g. '01-15-2024'). Sibling to the v1.7 temporal-compound patterns. Surfaced by SmartCoding's sample-note-001.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)(?<![\\d./-])\\b\\d{1,2}-\\d{1,2}\\b(?![./-]\\d)\\s+(?:blocks?|min(?:ute)?s?|hours?|hrs?|days?|weeks?|wks?|months?|mos?|years?|yrs?|times?|steps?|tablets?|pills?|doses?|sets?|reps?|flights?|stairs?|breaths?|beats?|laps?|cycles?|sessions?|episodes?)\\b"
+  },
+  {
+   "title": "smartcoding named clinical instrument safe",
+   "_v1_10_7_purpose": "v1.10.7 (2026-06-19): 'Montreal Cognitive Assessment' — the POS tagger tags 'Montreal' as a proper noun and a base NAME filter redacts it, mangling a billable named instrument (MoCA). Whitelists the FULL instrument name only (anchored to 'Cognitive Assessment'), so a bare 'Montreal' (real city / surname) is NOT whitelisted — no recall risk. Observed in SmartCoding's sample-note-001. The broader city/eponym-named-scale family (Glasgow Coma Scale, Boston Naming, Hamilton/Beck scales) is NOT added speculatively — add on observation.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\bMontreal\\s+Cognitive\\s+Assessment\\b"
+  },
+  {
+   "title": "smartcoding o2 saturation safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(O2\\s*sat(uration)?|SpO2|SaO2|oxygen\\s+saturation|sat)\\s+(?:remains?|drops?|falls?|stays?|is)?\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d{1,3}\\s*%?"
+  },
+  {
+   "title": "smartcoding heart rate safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(HR|heart\\s+rate|pulse)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d{2,3}(\\s*(bpm|beats/min))?"
+  },
+  {
+   "title": "smartcoding respiratory rate safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(RR|respiratory\\s+rate|resp\\s+rate)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d{1,3}"
+  },
+  {
+   "title": "smartcoding temperature safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(temp|temperature|T)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d{2,3}\\.?\\d?\\s*°?[FC]?\\b"
+  },
+  {
+   "title": "smartcoding mass dose safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*(mg|mcg|ug|μg|g|kg|mL|L|mEq|mmol|units?|IU)\\b"
+  },
+  {
+   "title": "smartcoding per-kg dose safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*mg/kg\\b"
+  },
+  {
+   "title": "smartcoding tablet count safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*(tab|tabs|tablet|tablets|cap|caps|capsule|capsules|drop|drops|gtt|gtts|puff|puffs|spray|sprays|patch|patches)\\b"
+  },
+  {
+   "title": "smartcoding frequency abbreviation safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(qd|bid|tid|qid|qhs|qam|qpm|qod|prn|po|pr|sl|iv|im|sc|sq|q\\d{1,2}h)\\b"
+  },
+  {
+   "title": "smartcoding lab concentration safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*(mg/dL|mmol/L|mEq/L|g/dL|ng/mL|pg/mL|U/L|IU/L)\\b"
+  },
+  {
+   "title": "smartcoding a1c safe",
+   "_v1_10_6_purpose": "RECALL FIX (gold harness): 'Last HbA1c 09-25-22: 9.8%' — the A1c value matcher greedily took '09' (the date's month) as the A1c value, whitelisting it and shadowing the base date exclude, so the visit date leaked. Wrapped the value in an ATOMIC group and added a date-continuation negative lookahead (?![-/]\\d) so an A1c value can never absorb a date component; the real value ('9.8%') is still whitelisted (separately by the percentage filter when a date intervenes). Atomic group/lookahead force a Compiled fallback — fine.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(A1[Cc]|HbA1[Cc]|hemoglobin\\s+A1[Cc])\\s*(?:[<>]=?|[:=≤≥])?\\s*(?>\\d+\\.?\\d*)\\s*%?(?![-/]\\d)"
+  },
+  {
+   "title": "smartcoding bnp safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(BNP|NT-proBNP|pro[-\\s]?BNP)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding creatinine safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(Cr|serum\\s+creatinine|creatinine)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding gfr safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(eGFR|GFR)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding glucose safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(glucose|BG|blood\\s+sugar|FBG|FPG)\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding troponin safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\btroponin\\s+(I|T)?\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding inr safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\bINR\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding bmi safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\bBMI\\s*(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*"
+  },
+  {
+   "title": "smartcoding weight safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)(?:gain|loss|up|down|change)?\\s*(?:[<>]=?|[:=≤≥])?\\s*\\b\\d+\\.?\\d*\\s*(lb|lbs|kg|pounds?|kilograms?)\\b"
+  },
+  {
+   "title": "smartcoding jvp safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\bJVP\\s+(at\\s+|of\\s+)?(?:[<>]=?|[:=≤≥])?\\s*\\d+\\.?\\d*\\s*cm"
+  },
+  {
+   "title": "smartcoding edema grading safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d\\+?\\s*(pitting\\s+)?edema\\b"
+  },
+  {
+   "title": "smartcoding edema grading prefixed safe",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(pitting\\s+)?edema\\s+\\d\\+?"
+  },
+  {
+   "title": "smartcoding clinical unit safe",
+   "_v18_purpose": "Lab/vital units stranded by tokenization (mg/dL->dL, mIU, mL, micrometers, breaths/min, gauge, /hpf).",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(mg|mcg|ug|ng|pg|kg|dL|mL|fL|mEq|mmol|mIU|IU|mmHg|cmH2O|bpm|cm|mm|nm|um|breaths?|beats?|gauge|hpf|lpf|micrometers?|microns?|millimeters?|centimeters?|milliliters?|microliters?|femtoliters?|picograms?|nanograms?|micrograms?|milligrams?|kilograms?|millimoles?|milliequivalents?)\\b"
+  },
+  {
+   "title": "smartcoding egfr normalization unit safe",
+   "_v18_purpose": "eGFR body-surface normalization 'mL/min/1.73 m^2' strands '73m'.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)1\\.73\\s*m"
+  },
+  {
+   "title": "smartcoding over-the-counter safe",
+   "_v18_purpose": "Multi-hyphen compound 'over-the-counter' (and OTC).",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(over-the-counter|OTC)\\b"
+  },
+  {
+   "title": "smartcoding drug class safe",
+   "_v18_purpose": "Drug-class abbreviations/nouns (NSAIDs, SSRIs, ACEi, ARBs, PPIs, DOACs, statins, ...).",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(NSAIDs?|SSRIs?|SNRIs?|ACEis?|ARBs?|PPIs?|DOACs?|NOACs?|TCAs?|MAOIs?|ARNIs?|CCBs?|SGLT2is?|DPP-?4is?|GLP-?1s?|statins?|fibrates?|biguanides?|sulfonylureas?|corticosteroids?|glucocorticoids?|opioids?|opiates?|benzodiazepines?|anticoagulants?|antiplatelets?|antibiotics?|antivirals?|antifungals?|antihistamines?|antidepressants?|antipsychotics?|anticonvulsants?|antiemetics?|diuretics?|vasodilators?|bronchodilators?|antihypertensives?|anticholinergics?|antacids?|laxatives?|DAAs?|beta-?blockers?|alpha-?blockers?)\\b"
+  },
+  {
+   "title": "smartcoding cranial nerve / roman numeral safe",
+   "_v19_purpose": "Cranial nerves and grades written as roman numerals — 'Cranial Nerves II-XII', 'grade II'. Restricted to II..XII (multi-char) so single ambiguous letters I/V/X aren't whitelisted.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "\\b(?:II|III|IV|VI|VII|VIII|IX|XI|XII)\\b"
+  },
+  {
+   "title": "smartcoding coordination test safe",
+   "_v19_purpose": "Cerebellar coordination tests written as hyphen compounds — 'finger-to-nose', 'heel-to-shin'.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(finger[-\\s]to[-\\s]nose|heel[-\\s]to[-\\s](?:shin|toe))\\b"
+  },
+  {
+   "title": "smartcoding decade and count suffix safe",
+   "_v19_purpose": "Decade references and counted items — 'in her 80s', 'serial 7s', 'platelet counts in the 100s'. 1-3 digits + s; never PHI.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "\\b\\d{1,3}s\\b"
+  },
+  {
+   "title": "smartcoding lab unit per-liter safe",
+   "_v1_10_purpose": "Lab concentration unit compounds whose unit strands when split — 'mIU/L' (TSH), 'K/uL' (CBC), 'mcg/dL'. NUMBER-ANCHORED (like 'lab concentration safe') — an un-anchored 'mg/dL' span shifts the include-map complement and flips a base regex_context filter, regressing 'dL'.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*(?:m?IU|mc?g|ng|pg|mmol|mEq|mg|ug|K|U)\\s*/\\s*(?:L|dL|mL|uL|cmm|hpf)\\b"
+  },
+  {
+   "title": "smartcoding bmi unit safe",
+   "_v1_10_purpose": "BMI unit 'kg/m^2' strands the 'm' after the slash. Number-anchored (e.g. '22.3 kg/m') to match the proven 'lab concentration safe' shape and avoid the include-map complement shift.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d+\\.?\\d*\\s*kg\\s*/\\s*m"
+  },
+  {
+   "title": "smartcoding clinical slash abbreviation safe",
+   "_v1_10_purpose": "Ubiquitous clinical slash-abbreviations split by Catalyst — 'r/o' (rule out), 'c/o', 's/p', 'h/o', 'w/o', 'f/u', 'n/v', 'b/l', 'd/c', 'i/o', 'a/o', 'p/o'.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(?:r/o|c/o|s/p|h/o|w/o|f/u|n/v|b/l|d/c|i/o|a/o|p/o)\\b"
+  },
+  {
+   "title": "smartcoding ordinal percentile safe",
+   "_v1_10_purpose": "Growth-chart percentiles / ordinals — '50th percentile', '3rd'. Never PHI.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b\\d{1,3}(?:st|nd|rd|th)\\b"
+  },
+  {
+   "title": "smartcoding diagnosis abbreviation safe",
+   "_v1_10_purpose": "Diagnosis abbreviations stranded as default-deny — HIV/AIDS/HCV/HBV/HSV/HPV/COVID/TB/STI/STD/RSV. Clinical info, not HIPAA identifiers.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(HIV|AIDS|HCV|HBV|HSV|HPV|COVID(?:-?19)?|TB|STI|STD|RSV)\\b"
+  },
+  {
+   "title": "smartcoding stage grade class safe",
+   "_v1_10_purpose": "Cancer/CKD staging and grading — 'stage 3b', 'grade II', 'class III'. Anchored to stage/grade/class so bare code-shaped tokens aren't whitelisted.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(stage|grade|class)\\s+(?:[0-4]|I{1,3}|IV|VI?)[a-d]?\\b"
+  },
+  {
+   "title": "smartcoding residual vocabulary safe",
+   "_v1_10_2_purpose": "Words the retired families covered that are NOT in nonames (so not handled by the tokenization fix).",
+   "_v1_10_4_purpose": "Final safe batch from the equilibrium-loop tail (out-synthetic-fix catalog): unambiguous English verb/adverb forms and specialty clinical terms that cannot plausibly be HIPAA identifiers (no surname/given-name/place collisions). Deliberately EXCLUDES the rest of the tail — race values (asian/indian), eponyms (raynaud/alzheimer/pugh), single letters (l/m/v), and name-colliding specialty vocab (oak/grass/amber/carpenter/weed/storm/crown) — those are deferred-by-design or recall-risky and stay redacted. This is the last sidecar iteration before declaring equilibrium; further over-redaction reduction needs a recall harness, not more whitelist entries.",
+   "type": "regex",
+   "exclude": false,
+   "phi_type": "OTHER",
+   "pattern": "(?i)\\b(pencil|pentagons?|intersecting|pearly|pollen|thousand|visuospatial|ostiomeatal|impacting|necessitating|emphasizing|correlating|corroborates|disrupting|misplacing|paralyzed|cosmetically|clarity|multisequence|antifibrotic|honeycombing|decibels?|millivolts?|amplitudes?|scotomas?|abductors?|plantarflexors?|blackouts?|buttoning)\\b"
+  }
+ ]
+}

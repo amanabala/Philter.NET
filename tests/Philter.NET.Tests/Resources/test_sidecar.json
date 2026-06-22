@@ -1,0 +1,13 @@
+{
+  "_comment": "Test sidecar — exercises the AddSidecar() DI path. Protects a single nonsense token that the base pipeline would otherwise let pass.",
+  "version": "test-1.0",
+  "filters": [
+    {
+      "title": "test sidecar marker",
+      "type": "regex",
+      "exclude": false,
+      "phi_type": "OTHER",
+      "pattern": "\\bWIDGET-\\d{3}\\b"
+    }
+  ]
+}

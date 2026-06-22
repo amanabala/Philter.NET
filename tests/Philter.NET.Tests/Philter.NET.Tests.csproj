@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="xunit" Version="2.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Philter.NET\Philter.NET.csproj" />
+    <ProjectReference Include="..\..\src\Philter.NET.Clinical\Philter.NET.Clinical.csproj" />
+    <ProjectReference Include="..\..\src\Philter.NET.PerceptronTagger\Philter.NET.PerceptronTagger.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The test sidecar JSON exercises the same AddSidecar() path SmartCoding uses. -->
+    <EmbeddedResource Include="Resources\test_sidecar.json" />
+  </ItemGroup>
+
+</Project>

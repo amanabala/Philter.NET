@@ -1,0 +1,50 @@
+Philter.NET
+===========
+
+Copyright (c) 2026 Prometheus Technology Systems Corp / Ravi Manabala
+Licensed under the BSD 3-Clause License (see LICENSE).
+
+---
+
+This product is a C# port of and derivative work of Philter-Lite,
+originally developed by the UCSF Department of Pediatrics:
+
+    Philter-Lite
+    https://github.com/UCSF-Pediatrics/philter-lite
+    BSD 3-Clause License
+    Copyright (c) UCSF Department of Pediatrics
+
+The base filter pipeline configuration (`philter_delta.json`) and the
+lookup sets in `Configuration/sets/` are derived from the upstream
+Philter-Lite distribution. Upstream BSD-3 attribution applies to those
+artifacts; modifications and additions ship under this project's BSD-3
+license alongside.
+
+The C# filter engine implementation, configuration loader, sidecar
+mechanism, and POS tagger integrations are original work.
+
+---
+
+The Philter.NET.PerceptronTagger package embeds and ports the NLTK averaged
+perceptron part-of-speech tagger:
+
+    Averaged Perceptron Tagger
+    Copyright 2013 Matthew Honnibal
+    NLTK port / modifications Copyright 2015 The NLTK Project
+    MIT License
+
+    The C# inference port (AveragedPerceptron.cs, PerceptronPosTagger.cs) is
+    derived from nltk/tag/perceptron.py. The embedded model data
+    (averaged_perceptron_tagger_eng.{weights,tagdict,classes}.json) is the
+    pretrained English model distributed by the NLTK Data project under the
+    MIT License (per the NLTK data index). Permission notice retained per MIT.
+
+---
+
+Dependencies (separately licensed):
+
+  - Catalyst (curiosity-ai/catalyst) — MIT License
+  - Catalyst.Models.English — MIT License
+    Used only by the Philter.NET.Catalyst integration package.
+
+  - Microsoft.Extensions.* — MIT License

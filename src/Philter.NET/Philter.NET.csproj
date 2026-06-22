@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>Philter.NET</RootNamespace>
+    <AssemblyName>Philter.NET</AssemblyName>
+
+    <PackageId>Philter.NET</PackageId>
+    <Description>
+      C# port of Philter-Lite — a rule-based PHI de-identification engine for
+      clinical free text. Targets HIPAA Safe Harbor-style redaction, intended
+      to scrub clinical notes before transmission to third-party LLM APIs.
+      Original Python implementation by UCSF Pediatrics (BSD-3); this .NET
+      port adds a sidecar mechanism, pluggable POS tagger, and an
+      IPhiDeidentificationService abstraction.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.*" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <!-- Upstream BSD-3 attribution to Philter-Lite applies to these resources. -->
+    <EmbeddedResource Include="Configuration\philter_delta.json" />
+    <EmbeddedResource Include="Configuration\sets\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\NOTICE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

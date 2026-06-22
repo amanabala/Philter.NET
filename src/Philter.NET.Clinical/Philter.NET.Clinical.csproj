@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>Philter.NET.Clinical</RootNamespace>
+    <AssemblyName>Philter.NET.Clinical</AssemblyName>
+
+    <PackageId>Philter.NET.Clinical</PackageId>
+    <Description>
+      Clinical-text safe patterns for Philter.NET. A sidecar configuration that
+      prepends to the upstream philter_delta pipeline, rescuing legitimate clinical
+      text (BP readings, lab values, dose patterns, drug names, medical abbreviations,
+      pain scales, etc.) from over-redaction. Developed against synthetic clinical
+      encounter notes inside a private healthcare-coding product (SmartCodingAI);
+      released here so adopters don't have to rediscover the same edge cases.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Philter.NET\Philter.NET.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Configuration\philter_clinical_safe.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\NOTICE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

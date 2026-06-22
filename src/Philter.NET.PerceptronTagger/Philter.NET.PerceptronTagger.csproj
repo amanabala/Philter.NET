@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>Philter.NET.PerceptronTagger</RootNamespace>
+    <AssemblyName>Philter.NET.PerceptronTagger</AssemblyName>
+
+    <PackageId>Philter.NET.PerceptronTagger</PackageId>
+    <Description>
+      Lightweight, pure-managed IPosTagger for Philter.NET — a faithful C# port of
+      nltk's averaged-perceptron POS tagger (the tagger philter-lite itself uses).
+      Embeds the ~5.5 MB JSON model; no native dependencies, no network, emits Penn
+      Treebank tags directly. A small-footprint alternative to Philter.NET.Catalyst
+      for consumers who only need POS (not NER).
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Philter.NET\Philter.NET.csproj" />
+  </ItemGroup>
+
+  <!-- nltk averaged-perceptron model, shipped as JSON (weights/tagdict/classes),
+       embedded so the tagger loads offline with no model-download step. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Models\averaged_perceptron_tagger_eng.weights.json" />
+    <EmbeddedResource Include="Models\averaged_perceptron_tagger_eng.tagdict.json" />
+    <EmbeddedResource Include="Models\averaged_perceptron_tagger_eng.classes.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\NOTICE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

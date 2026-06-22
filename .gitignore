@@ -1,0 +1,17 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+## Build
+artifacts/
+**/TestResults/
+**/coverage*.xml
+
+## OS
+.DS_Store
+Thumbs.db

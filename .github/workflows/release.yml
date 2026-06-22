@@ -1,0 +1,67 @@
+name: Release
+
+# Tag a commit on main with v<version> (e.g. v0.1.0-preview) to publish to NuGet.org.
+# The package version is derived from the tag, so the tag is the single source of truth.
+#
+# Auth: NuGet Trusted Publishing (OIDC) — NO long-lived API key is stored. The NuGet/login
+# action exchanges a short-lived GitHub OIDC token for a ~1-hour NuGet key at publish time.
+#
+# ONE-TIME SETUP, required BEFORE the first tag (do it before pushing public code so it also
+# claims the package IDs):
+#   1. nuget.org -> (your username) -> Trusted Publishing -> add a policy for EACH package
+#      (Philter.NET, Philter.NET.Clinical, Philter.NET.PerceptronTagger) with:
+#         repository owner = amanabala,  repository = Philter.NET,  workflow = release.yml
+#   2. Set the repo variable NUGET_USER to your nuget.org account name (Settings -> Variables).
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  id-token: write   # mint the OIDC token for trusted publishing
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (8 + 10)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Derive version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build + test (gate — never publish untested bits)
+        run: |
+          dotnet build Philter.NET.sln -c Release
+          dotnet test Philter.NET.sln -c Release --no-build
+
+      # Trio only — Philter.NET.Catalyst is intentionally NOT published in this preview
+      # (build-time NuGet.CommandLine advisory; it will ship as a separate package later).
+      - name: Pack (trio)
+        run: |
+          for proj in Philter.NET Philter.NET.Clinical Philter.NET.PerceptronTagger; do
+            dotnet pack "src/$proj/$proj.csproj" -c Release \
+              -o artifacts -p:Version=${{ steps.ver.outputs.version }}
+          done
+
+      - name: NuGet login (trusted publishing — short-lived key via OIDC, no stored secret)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
