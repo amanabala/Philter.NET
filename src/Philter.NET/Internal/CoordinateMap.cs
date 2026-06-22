@@ -79,10 +79,17 @@ internal sealed class CoordinateMap
             return;
         }
 
-        // Multiple overlaps — span union from earliest start to latest stop
+        // Multiple overlaps — span union from earliest start to latest stop.
+        // NOTE: keep the EARLIEST start as the key and the LATEST stop as the value.
+        // (A prior transcription bug had these crossed — `_map[last.newStart] =
+        // first.newStop` — which truncated the union to the first overlap's stop and
+        // silently dropped coverage of every later overlapped span. That manifested as a
+        // recall leak: a PHI span abutting another PHI exclude that got merged by a third
+        // adjacent AddExtend could lose its exclusion entirely, e.g. a visit date
+        // immediately after a hyphenated provider name.)
         var first = overlaps[0];
         var last = overlaps[^1];
-        _map[last.newStart] = first.newStop;
+        _map[first.newStart] = last.newStop;
     }
 
     private List<(int origStart, int origEnd, int newStart, int newStop)> MaxOverlap(int start, int stop)

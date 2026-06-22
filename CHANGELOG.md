@@ -7,6 +7,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once
 
 ## [Unreleased]
 
+## [0.1.1-preview] — 2026-06-22
+
+### Fixed
+
+- **Recall: dates immediately following a hyphenated provider name are no longer
+  leaked.** A truncation bug in the internal `CoordinateMap.AddExtend` span-merge
+  (it kept the *latest* start with the *earliest* stop instead of the union)
+  silently dropped a PHI span's exclusion when an adjacent PHI exclude was merged
+  into it. In practice a visit date right after a hyphenated surname
+  (e.g. `…Perkins-Johnson 08/12/2023`) had its DATE exclusion erased and fell
+  through to the cardinal-number whitelist, surviving in the output. Fixed to take
+  the true union (earliest start → latest stop). On the 200-note synthetic gold
+  set this raises DATE recall to 758/758 (was 755/758) with no change to any other
+  category; overall recall holds at 98.9% and precision is unchanged. Regression
+  rows added to `RecallCriticalPhi_is_redacted`. This is a core-engine fix, so it
+  benefits every pipeline regardless of POS tagger or sidecar.
+
 ## [0.1.0-preview] — 2026-06-22
 
 First public preview of Philter.NET — a C# port of
@@ -75,5 +92,6 @@ Catalyst model incurred. Production deployments should still pre-warm the single
 - Developed by a single maintainer with substantial AI assistance — see the
   README "How this project is developed" section.
 
-[Unreleased]: https://github.com/amanabala/Philter.NET/compare/v0.1.0-preview...HEAD
+[Unreleased]: https://github.com/amanabala/Philter.NET/compare/v0.1.1-preview...HEAD
+[0.1.1-preview]: https://github.com/amanabala/Philter.NET/compare/v0.1.0-preview...v0.1.1-preview
 [0.1.0-preview]: https://github.com/amanabala/Philter.NET/releases/tag/v0.1.0-preview

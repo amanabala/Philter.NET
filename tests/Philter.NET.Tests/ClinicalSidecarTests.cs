@@ -239,6 +239,14 @@ public class ClinicalSidecarTests
     // happens to sit near a BP anchor or before a unit word (the v1.10.3/5/6 leak class).
     [InlineData("BP checked 01/15/2024 in clinic.", "01/15/2024")]
     [InlineData("Symptom onset 01-15-2024, worse over days.", "01-15-2024")]
+    // Date-after-hyphenated-name leak (CoordinateMap.AddExtend truncation bug, fixed
+    // 2026-06-22): a visit date immediately following a hyphenated provider surname had
+    // its DATE exclusion silently dropped when the adjacent name exclude was merged into
+    // it, letting the date fall through to the CD numeric whitelist. Surfaced by the
+    // 200-note gold run (3 leaks: 08/12/2023, 01-28-22, 2026-03-12). The date must go.
+    [InlineData("Follow-up w/ Brittney Perkins-Johnson 08/12/2023 post-imaging.", "08/12/2023")]
+    [InlineData("F/U w/ Keith Johnson-Valdez 01-28-22 or sooner.", "01-28-22")]
+    [InlineData("Follow-up w/ Jennifer Turner-Mays 2026-03-12 for reassessment.", "2026-03-12")]
     public async Task RecallCriticalPhi_is_redacted(string input, string mustNotRemain)
     {
         using var sp = (ServiceProvider)BuildServicesWithClinical();
