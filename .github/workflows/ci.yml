@@ -12,10 +12,10 @@ jobs:
     env:
       CI: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET (8 + 10)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
@@ -27,8 +27,7 @@ jobs:
       - name: Build (Release)
         run: dotnet build Philter.NET.sln -c Release --no-restore
 
-      # Tests run on net8.0 + net10.0. The Catalyst-backed tests restore the ~100 MB
-      # Catalyst.Models.English package, so this job is download-heavy until Catalyst
-      # is split out of this repo (see CHANGELOG / README — perceptron is the default).
+      # Tests run on net8.0 + net10.0 with the pure-managed perceptron tagger (default) —
+      # no heavy model downloads (see CHANGELOG / README).
       - name: Test (Release)
         run: dotnet test Philter.NET.sln -c Release --no-build --verbosity normal
