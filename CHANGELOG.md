@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once
 
 ## [Unreleased]
 
+## [0.1.3-preview] — 2026-06-22
+
+### Changed
+
+- README status banner corrected: it still said "Pre-release, not yet on NuGet,"
+  which became false once 0.1.0–0.1.2 published. Now reads "Available on NuGet as
+  a preview." Docs only; no engine, API, or behavior change.
+
 ## [0.1.2-preview] — 2026-06-22
 
 ### Changed
@@ -119,7 +127,8 @@ Catalyst model incurred. Production deployments should still pre-warm the single
 - Developed by a single maintainer with substantial AI assistance — see the
   README "How this project is developed" section.
 
-[Unreleased]: https://github.com/amanabala/Philter.NET/compare/v0.1.2-preview...HEAD
+[Unreleased]: https://github.com/amanabala/Philter.NET/compare/v0.1.3-preview...HEAD
+[0.1.3-preview]: https://github.com/amanabala/Philter.NET/compare/v0.1.2-preview...v0.1.3-preview
 [0.1.2-preview]: https://github.com/amanabala/Philter.NET/compare/v0.1.1-preview...v0.1.2-preview
 [0.1.1-preview]: https://github.com/amanabala/Philter.NET/compare/v0.1.0-preview...v0.1.1-preview
 [0.1.0-preview]: https://github.com/amanabala/Philter.NET/releases/tag/v0.1.0-preview

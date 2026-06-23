@@ -7,9 +7,10 @@ HIPAA Safe Harbor-style redaction in .NET applications that need to scrub
 clinical notes before sending them to third-party LLM APIs (or anywhere else
 PHI shouldn't go).
 
-> **Status:** Pre-release, not yet on NuGet. Validated against a **synthetic**
-> gold corpus — **not real patient data** (see [Recall & limitations](#recall--limitations)).
-> The public API is still settling; expect breaking changes before 1.0.
+> **Status:** Available on NuGet as a **preview** — **not** for production without
+> your own validation. Benchmarked on a **synthetic** gold corpus, **not real
+> patient data** (see [Recall & limitations](#recall--limitations)). The public
+> API is still settling; expect breaking changes before 1.0.
 
 ## Why
 
